@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload Video</title>
+</head>
+<body>
+    <h1>Video Upload for Processing</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <!-- Video file input -->
+        <input type="file" name="video" accept="video/*" required>
+        <button type="submit">Upload and Process Video</button>
+    </form>
+    <div id="response"></div>
+    <script>
+        const form = document.querySelector('form');
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            document.getElementById('response').textContent = JSON.stringify(data, null, 2); // Display JSON data as string
+        };
+    </script>
+</body>
+</html>
