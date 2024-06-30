@@ -9,18 +9,46 @@
         body {
             background-color: #f9f9f9;
         }
+        .analysis-section {
+            margin-bottom: 1.5rem;
+        }
+        .markdown-block {
+            white-space: pre-wrap;
+        }
+        .list-item {
+            margin-left: 1em;
+            list-style-type: disc;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
-        <h1 class="text-2xl font-bold mb-4">Video Analysis</h1>
-        <p id="analysisText" class="text-lg"></p>
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-3xl">
+        <h1 class="text-3xl font-bold mb-6">Video Analysis</h1>
+        <div id="analysisContent" class="text-lg space-y-4 markdown-block"></div>
     </div>
 
     <script>
+        function toHTML(text) {
+            // Replace Markdown with HTML tags
+            text = text.replace(/##\s(.*?)(\n|$)/g, '<h2 class="text-2xl font-bold mt-4">$1</h2>');
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            text = text.replace(/•\s(.*?)(\n|$)/g, '<li class="list-item">$1</li>');
+            
+            // Handle newlines and paragraphs
+            text = text.replace(/\n{2,}/g, '</p><p>');
+            text = text.replace(/\n/g, '<br>');
+            
+            return `<p>${text}</p>`;
+        }
+
         window.addEventListener('load', () => {
             const analysisText = localStorage.getItem('analysisText');
-            document.getElementById('analysisText').textContent = analysisText;
+            const formattedHTML = toHTML(analysisText);
+
+            const analysisContent = document.getElementById('analysisContent');
+            analysisContent.innerHTML = formattedHTML;
+
             localStorage.removeItem('analysisText');
         });
     </script>
