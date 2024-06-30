@@ -2,28 +2,285 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Upload Video</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microscope LM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            background-image: url('https://lh3.googleusercontent.com/pw/AP1GczPYBy_De9t-G5Fpi0DNYAGGle5rOmFzW79C3SsjmWsfRoVELW4h6kGFQplpDw5f9VIrjkBDPILS4sUyYqZjcXMSKanBLn8s5QJwOqNKBxcc5H4v04tF3d9Mn7L9msBizvOAg_CYokhxX56VTn0BFkr5=w1623-h913-s-no-gm?authuser=0');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            color: white;
+        }
+        #loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        .header {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            display: flex;
+            align-items: center;
+        }
+        .header i {
+            margin-right: 0.5rem;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #28a745; /* Green color */
+        }
+        .header h2 {
+            font-size: 1.5rem;
+            margin-left: 0.5rem;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .video-container {
+            width: 720px; /* Slightly wider */
+            height: 405px; /* Slightly taller */
+            position: relative;
+            overflow: hidden;
+            border: 2px solid white;
+            border-radius: 1rem;
+            background-color: #000;
+            margin-bottom: 1rem;
+        }
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .control-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            background-color: #1f1f1f;
+            border: 2px solid white;
+            border-radius: 2rem;
+            width: 720px; /* Match video width */
+        }
+        .icon-button {
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #3b3b3b;
+            border-radius: 50%;
+            margin: 0 0.5rem;
+        }
+        .icon-button i {
+            color: white;
+            font-size: 1.5rem;
+        }
+        .text-input {
+            background-color: #1f1f1f;
+            border-radius: 2rem;
+            color: white;
+            padding: 1rem;
+            flex: 1;
+            margin: 0 0.5rem;
+        }
+        .record-button {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4rem;
+            height: 4rem;
+            background-color: transparent;
+            border: 4px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .record-button .inner-circle {
+            width: 3rem;
+            height: 3rem;
+            background-color: #ff0000;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        .record-button.recording .inner-circle {
+            width: 1.5rem;
+            height: 1.5rem;
+            background-color: #ff0000;
+            border-radius: 0.3rem;
+        }
+    </style>
 </head>
 <body>
-    <h1>Video Upload for Processing</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <!-- Video file input -->
-        <input type="file" name="video" accept="video/*" required>
-        <button type="submit">Upload and Process Video</button>
-    </form>
-    <div id="response"></div>
+    <div class="header">
+        <i class="fas fa-microscope text-xl"></i>
+        <a href="https://www.firley.net" class="text-green-500 font-bold text-2xl">Firley</a>
+        <h2 class="text-xl ml-2">Microscope LM</h2>
+    </div>
+    <div class="container">
+        <div class="video-container">
+            <video id="videoElement" autoplay muted></video>
+            <div id="recordButton" class="record-button">
+                <div class="inner-circle"></div>
+            </div>
+        </div>
+        <div class="control-panel">
+            <button id="uploadButton" class="icon-button">
+                <i class="fas fa-upload"></i>
+            </button>
+            <input type="file" id="videoUpload" accept="video/*" class="hidden" />
+            <input id="textPrompt" type="text" placeholder="Input additional context regarding your video here" class="text-input" autocomplete="off">
+            <button id="sendButton" class="icon-button">
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="loading" class="flex items-center justify-center">
+        <div class="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-white border-t-transparent"></div>
+    </div>
+
     <script>
-        const form = document.querySelector('form');
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData,
+        const recordButton = document.getElementById('recordButton');
+        const uploadButton = document.getElementById('uploadButton');
+        const sendButton = document.getElementById('sendButton');
+        const videoElement = document.getElementById('videoElement');
+        const videoUpload = document.getElementById('videoUpload');
+        const textPrompt = document.getElementById('textPrompt');
+        const loading = document.getElementById('loading');
+
+        let mediaRecorder;
+        let recordedChunks = [];
+        let recording = false;
+        let fileUploaded = false;
+
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                videoElement.srcObject = stream;
+                videoElement.controls = false;  // Disable controls when using camera
             });
-            const data = await response.json();
-            document.getElementById('response').textContent = JSON.stringify(data, null, 2); // Display JSON data as string
-        };
+        }
+
+        recordButton.addEventListener('click', () => {
+            if (recording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+
+        uploadButton.addEventListener('click', () => {
+            if (!recording && !fileUploaded) {
+                videoUpload.click();
+            }
+        });
+
+        videoUpload.addEventListener('change', (event) => {
+            if (event.target.files.length > 0 && event.target.files[0].size < 30 * 1024 * 1024) {
+                fileUploaded = true;
+                disableRecording();
+                const file = event.target.files[0];
+                const url = URL.createObjectURL(file);
+                videoElement.srcObject = null;
+                videoElement.src = url;
+                videoElement.controls = true;  // Enable controls for uploaded video
+                videoElement.play();
+                recordButton.style.display = 'none';
+            } else {
+                alert('File is too large or no file selected');
+                videoUpload.value = null;
+            }
+        });
+
+        sendButton.addEventListener('click', () => {
+            if (recording) {
+                alert('Please stop recording before sending');
+                return;
+            }
+
+            if (!recordedChunks.length && !fileUploaded) {
+                alert('Please record a video or upload a video before sending');
+                return;
+            }
+
+            const formData = new FormData();
+            if (fileUploaded) {
+                formData.append('video', videoUpload.files[0]);
+            } else {
+                const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+                const file = new File([blob], "recording.mp4", { type: 'video/mp4' });
+                formData.append('video', file);
+            }
+            formData.append('text', textPrompt.value);
+
+            loading.style.display = 'flex';
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            }).then(response => response.json())
+              .then(data => {
+                  loading.style.display = 'none';
+                  localStorage.setItem('analysisText', data.text);
+                  window.location.href = '/analysis';
+              })
+              .catch(error => {
+                  console.error('Error:', error);
+                  loading.style.display = 'none';
+              });
+        });
+
+        function startRecording() {
+            recordedChunks = [];
+            const options = { mimeType: 'video/webm; codecs=vp9' };
+            const stream = videoElement.srcObject;
+            mediaRecorder = new MediaRecorder(stream, options);
+
+            mediaRecorder.ondataavailable = function(event) {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+
+                if (recordedChunks.reduce((acc, curr) => acc + curr.size, 0) >= 30 * 1024 * 1024) {
+                    stopRecording();
+                }
+            };
+
+            mediaRecorder.start();
+            recording = true;
+            recordButton.classList.add('recording');
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            recording = false;
+            recordButton.style.display = 'none';
+            uploadButton.style.display = 'none';
+        }
+
+        function disableRecording() {
+            recordButton.style.display = 'none';
+            uploadButton.style.display = 'none';
+        }
     </script>
 </body>
 </html>
