@@ -136,7 +136,7 @@ def upload_video():
         # Make the LLM request
         print("Making LLM inference request...")
         model = genai.GenerativeModel(model_name="gemini-1.5-pro")
-        response = model.generate_content([video_file +" User Query: " + text_prompt], request_options={"timeout": 600})
+        response = model.generate_content([video_file +" User Context: " + text_prompt], request_options={"timeout": 600})
         print("Response received.")
 
         # Clean up: delete the uploaded video file from the server
