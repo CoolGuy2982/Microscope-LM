@@ -4,7 +4,7 @@ import os
 import time
 from dotenv import load_dotenv
 
-text_prompt= """
+system_prompt= """
 **Context:**
 You are a highly advanced AI model integrated into the microscope LM system. Your task is to analyze video data captured from a microscope and provide detailed identification and analysis. The video data could be from various samples such as water, blood, or other environmental specimens. Use Chain-of-Thought (CoT) prompting to break down your analysis step by step and ensure accuracy and thoroughness.
 
@@ -112,7 +112,7 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload_video():
     video = request.files['video']
-    text_prompt = request.form.get('text')  # Get text prompt from form, default if not provided
+    text_prompt = system_prompt  + "User Context: " + request.form.get('text') # Get text prompt from form, default if not provided
     
     if video and video.content_length < 30 * 1024 * 1024:  # Check if file size < 30 MB
         video_path = f"./{video.filename}"
@@ -136,7 +136,7 @@ def upload_video():
         # Make the LLM request
         print("Making LLM inference request...")
         model = genai.GenerativeModel(model_name="gemini-1.5-pro")
-        response = model.generate_content([video_file +" User Context: " + text_prompt], request_options={"timeout": 600})
+        response = model.generate_content([video_file, text_prompt], request_options={"timeout": 600})
         print("Response received.")
 
         # Clean up: delete the uploaded video file from the server
